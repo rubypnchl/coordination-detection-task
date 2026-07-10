@@ -264,3 +264,25 @@ Final note on AI use
 ------------------------------------------------------------
 
 AI was useful for scaffolding code, structuring the reasoning, and identifying possible failure modes. I used it as a coding and review assistant, not as an oracle. The main methodological choices came from the task constraints and from inspecting candidate groups in the dev split.
+
+------------------------------------------------------------
+Prompt 11: Statistical null model
+------------------------------------------------------------
+
+The reviewer expected a statistical null methodology. I already have scored candidate groups, but I need to compare high-scoring groups against what would be expected under ordinary/random crowd behaviour.
+
+Please help me design and implement a simple matched randomisation null model:
+1. read scored_candidate_groups.csv,
+2. for each top candidate group, generate random groups with the same key type and same post count,
+3. compute the same coordination score for each random group,
+4. calculate null_mean_score, null_95th_percentile, null_p_value, and null_percentile,
+5. save scored_candidate_groups_with_null.csv,
+6. write a short Markdown summary explaining the null model.
+
+Keep it simple and explainable. This is not official evaluation because hidden labels are not available.
+
+------------------------------------------------------------
+What I took from this
+------------------------------------------------------------
+
+This became src/18_null_model.py. It added a matched randomisation null check so that high-scoring groups could be compared against similar random groups. This made the methodology stronger because the score was no longer only heuristic; it was checked against a baseline expectation under ordinary crowd-like behaviour.

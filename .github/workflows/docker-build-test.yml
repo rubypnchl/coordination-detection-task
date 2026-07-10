@@ -1,0 +1,25 @@
+name: Docker build test
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  docker-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Show project files
+        run: |
+          pwd
+          ls -la
+          ls -la src
+
+      - name: Build Docker image
+        run: docker build -t coordination-task .
+
+      - name: Check Docker command starts
+        run: docker run --rm coordination-task --help

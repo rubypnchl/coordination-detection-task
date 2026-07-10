@@ -1,0 +1,266 @@
+AI-Assisted Process Log
+
+I used AI support during this task mainly for decomposition, code scaffolding, debugging, and checking whether my reasoning was too simplistic. I did not treat AI output as ground truth. The main decisions came from inspecting the data and comparing candidate groups against the task requirement: finding coordinated groups without confusing them with organic crowds.
+
+------------------------------------------------------------
+Prompt 1: Understanding the task
+------------------------------------------------------------
+
+I am working on an ML engineer take-home task. The dataset contains posts.jsonl, accounts.jsonl, and embeddings.parquet. The goal is to identify groups of accounts acting together and rank them by coordination strength.
+
+Please help me break down the problem in simple terms:
+- What is the actual objective?
+- What is the difference between coordinated behaviour and an organic crowd?
+- What fields in the data are likely to be useful?
+- What simple approaches might fail?
+- How should I think about validation when there are no labels?
+
+Important: do not give me only a generic clustering answer. The task warns that hashtags, viral pile-ons, and embedding clustering can find crowds rather than real coordination.
+
+------------------------------------------------------------
+What I took from this
+------------------------------------------------------------
+
+This helped me frame the problem as unsupervised coordination discovery rather than normal text clustering. The key idea was that topic similarity is not the same as coordination. I decided to look for multiple signals together: shared target, multiple accounts, semantic similarity, compressed timing, and crowd penalties.
+
+------------------------------------------------------------
+Prompt 2: Data inspection script
+------------------------------------------------------------
+
+I want to start with data understanding, not modelling.
+
+Please help me write simple, readable researcher-style Python code using pandas that:
+1. loads posts.jsonl and accounts.jsonl,
+2. loads embeddings.parquet,
+3. reports number of posts and accounts,
+4. reports time range,
+5. reports language distribution,
+6. reports how many posts contain hashtags, URLs, mentions, replies, threads, and quotes,
+7. reports top hashtags, URLs, mentions, reply targets, thread IDs, and quoted posts,
+8. checks that every post has an embedding,
+9. writes outputs to summary files.
+
+Keep the code modular but not over-engineered. Add comments so I can explain it myself.
+
+------------------------------------------------------------
+What I took from this
+------------------------------------------------------------
+
+This became the first set of small scripts for data inspection. I used this step to understand which fields were useful for candidate generation and which fields were likely to create noisy crowd groups.
+
+------------------------------------------------------------
+Prompt 3: Candidate group generation
+------------------------------------------------------------
+
+I have posts with hashtags, urls, mentions, reply_to_post_id, thread_id, and quoted_post_id.
+
+For the next step, I only want to generate candidate groups, not decide coordination yet.
+
+Please help me write simple pandas code that:
+1. creates one candidate event whenever a post shares a hashtag, URL, mention, reply target, thread ID, or quoted post ID,
+2. groups these candidate events by key_type and key_value,
+3. keeps groups with at least 3 posts and 3 distinct accounts,
+4. calculates post_count, account_count, first_time, last_time, and time_span_minutes,
+5. saves a CSV summary and a JSONL file with all post IDs.
+
+Keep the code simple and readable, like research code.
+
+------------------------------------------------------------
+What I took from this
+------------------------------------------------------------
+
+I used this to create broad candidate groups. I kept the distinction clear: a candidate group is not automatically coordinated. It is only a group worth inspecting or scoring.
+
+------------------------------------------------------------
+Prompt 4: Manual review support
+------------------------------------------------------------
+
+I have generated candidate groups for a coordination-detection task using shared hashtags, URLs, mentions, replies, threads, and quoted posts.
+
+For the next step, I do not want to classify final coordinated groups yet. I want to inspect candidates.
+
+Please help me create simple Python scripts that:
+1. select a balanced review set from candidate groups,
+2. include largest groups, tight time-window groups, specific target groups, and hashtag crowd examples,
+3. write a Markdown report with sample posts for each group,
+4. create a CSV file where I can manually write whether each group looks like likely_crowd, possible_coordination, unclear, or not_useful.
+
+Keep the code simple, readable, and suitable for research-style analysis.
+
+------------------------------------------------------------
+What I took from this
+------------------------------------------------------------
+
+This produced a review report and a manual notes file. I used the report to inspect examples and understand what broad crowds looked like compared with more suspicious groups.
+
+------------------------------------------------------------
+Prompt 5: How to fill manual review quickly
+------------------------------------------------------------
+
+I have only limited time to manually inspect candidate groups.
+
+The manual review columns are:
+- manual_assessment
+- content_similarity
+- timing_pattern
+- target_specificity
+- why_this_matters
+
+Please help me decide which columns can be filled automatically and which ones should remain manual. Also suggest short labels I can use so the review is fast but still meaningful.
+
+------------------------------------------------------------
+What I took from this
+------------------------------------------------------------
+
+I decided to automate the evidence columns where possible:
+- content similarity from embeddings;
+- timing pattern from timestamps;
+- target specificity from key type.
+
+The final judgement and explanation were still reviewed manually.
+
+------------------------------------------------------------
+Prompt 6: Automating review evidence with ML/NLP
+------------------------------------------------------------
+
+Write Python code to automate the manual review evidence columns.
+
+The script should:
+1. read manual_review_notes.csv or review_candidates.csv,
+2. reconstruct each candidate group from posts.jsonl,
+3. load embeddings.parquet,
+4. compute cosine similarity between post embeddings,
+5. generate content_similarity phrases,
+6. generate timing_pattern phrases,
+7. generate target_specificity phrases,
+8. suggest manual_assessment using simple rules,
+9. generate a draft why_this_matters sentence,
+10. write manual_review_notes_auto.csv and a ranked candidate CSV.
+
+Use simple, readable Python. Do not restructure the whole project.
+
+------------------------------------------------------------
+What I took from this
+------------------------------------------------------------
+
+This became src/15_auto_review_features.py. It helped speed up review by producing evidence automatically, while still leaving final judgement editable.
+
+------------------------------------------------------------
+Prompt 7: Final scoring pipeline
+------------------------------------------------------------
+
+Now I need to turn the candidate review logic into a final scoring pipeline for results.json.
+
+Please write a Python script that:
+1. loads posts and embeddings for a chosen split,
+2. generates candidate groups from hashtags, URLs, mentions, reply targets, thread IDs, and quoted post IDs,
+3. computes semantic similarity using cosine similarity over embeddings,
+4. computes timing burstiness,
+5. computes target specificity,
+6. computes account diversity,
+7. applies crowd penalties for broad hashtags, large mentions, long time spans, and low-similarity large groups,
+8. creates a coordination_score,
+9. removes near-duplicate overlapping clusters,
+10. writes scored_candidate_groups.csv and results.json.
+
+Keep the method interpretable. The final output must contain post_ids, is_coordinated, and coordination_score.
+
+------------------------------------------------------------
+What I took from this
+------------------------------------------------------------
+
+This became src/16_score_candidates_and_results.py. The scoring function combined semantic similarity, timing, target specificity, account diversity, and crowd penalty.
+
+------------------------------------------------------------
+Prompt 8: Checking the dev output
+------------------------------------------------------------
+
+Here are the top rows from scored_candidate_groups.csv on the dev split.
+
+Please help me judge whether the scoring looks sensible:
+- Are broad hashtags dominating?
+- Are specific URLs/replies/quotes ranking higher?
+- Are the top groups likely to be more useful than ordinary crowd groups?
+- Should I change thresholds or keep the method stable?
+
+[PASTED TOP DEV ROWS]
+
+------------------------------------------------------------
+What I took from this
+------------------------------------------------------------
+
+The top dev rows were mostly specific URL-sharing groups with multiple accounts, high semantic similarity, and compressed timing. This suggested that the crowd penalty was working better than simple hashtag grouping. I decided not to over-tune further before running eval.
+
+------------------------------------------------------------
+Prompt 9: README drafting
+------------------------------------------------------------
+
+Write a README for this project.
+
+It should explain:
+1. the problem framing,
+2. why coordination is not the same as topic similarity,
+3. the data used,
+4. the project structure,
+5. how to run the code,
+6. the candidate generation method,
+7. the scoring features,
+8. how I calibrated without labels,
+9. dead ends and decision log,
+10. time and space complexity,
+11. what would break at 10-100x scale,
+12. limitations.
+
+Make it sound like practical research work, not like an over-polished AI-generated solution.
+
+------------------------------------------------------------
+What I took from this
+------------------------------------------------------------
+
+This helped draft the README. I edited it to reflect the actual workflow: data inspection, candidate generation, manual inspection, automated evidence, scoring, and eval output.
+
+------------------------------------------------------------
+Prompt 10: Output validation
+------------------------------------------------------------
+
+I have generated results.json for the eval split. I do not have the hidden labels, so I cannot calculate official precision, recall, or PR-AUC.
+
+Please help me write a simple Python validation script that checks:
+1. results.json exists,
+2. the top-level object contains a clusters list,
+3. each cluster has post_ids, is_coordinated, and coordination_score,
+4. post_ids is a non-empty list of strings,
+5. is_coordinated is boolean,
+6. coordination_score is numeric,
+7. scores are sorted from high to low,
+8. duplicate clusters or overlapping post_ids are reported as warnings.
+
+This should be output validation, not official model evaluation.
+
+------------------------------------------------------------
+What I took from this
+------------------------------------------------------------
+
+This became src/17_validate_results.py. I used it to check that the final results.json followed the required schema before submission. Since the labels are hidden, this script does not estimate real performance; it only validates that the output is structurally ready.
+
+------------------------------------------------------------
+Three moments that mattered
+------------------------------------------------------------
+
+1. Avoiding simple hashtag or embedding clustering
+
+The first obvious idea was to cluster by hashtags or embeddings. I rejected this because those methods mostly find topics or crowds. The task specifically warns that viral hashtags and breaking-news pile-ons can look coordinated. This changed the method toward multi-signal scoring.
+
+2. Treating candidate groups as candidates, not final findings
+
+At first it was tempting to interpret shared keys as coordination. I changed this by separating candidate generation from scoring. A shared URL, hashtag, mention, reply, or thread only creates a candidate group. The final score depends on timing, semantic similarity, account diversity, and crowd penalties.
+
+3. Automating evidence but keeping judgement human-in-the-loop
+
+Manual review of every group was too slow. I automated content similarity, timing pattern, and target specificity, but did not treat the automatic label as ground truth. This gave a practical workflow: Python prepared evidence, and I used manual inspection to calibrate the logic and check failure modes.
+
+------------------------------------------------------------
+Final note on AI use
+------------------------------------------------------------
+
+AI was useful for scaffolding code, structuring the reasoning, and identifying possible failure modes. I used it as a coding and review assistant, not as an oracle. The main methodological choices came from the task constraints and from inspecting candidate groups in the dev split.

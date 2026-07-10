@@ -586,7 +586,21 @@ Schema:
 
 ---
 
-## 16. Summary
+## 16. Statistical null model
+Because no ground-truth labels were available, I added a matched randomisation null model to check whether high-scoring candidate groups were stronger than expected from ordinary crowd-like behaviour.
+
+For each tested candidate group, I generated random groups with the same key type and the same number of posts. I then computed the same coordination score for each random group and compared the observed score against this null distribution.
+
+The empirical p-value was calculated as:
+
+
+p = (1 + number of null scores >= observed score) / (1 + number of null samples)
+
+The null model is a matched randomisation sanity check rather than a full causal test. It matches key type and group size, but does not fully control for all context such as language, URL domain, or event-specific news cycles.
+
+---
+
+## 17. Summary
 
 The core idea of this solution is:
 
